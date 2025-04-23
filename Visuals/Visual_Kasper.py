@@ -1,6 +1,8 @@
+
+
 import marimo
 
-__generated_with = "0.11.13"
+__generated_with = "0.13.1"
 app = marimo.App(width="medium")
 
 
@@ -17,24 +19,8 @@ def _():
     from matplotlib.colors import Normalize
     from matplotlib import cm
     import math
-    return (
-        Circle,
-        Ellipse,
-        Line,
-        Normalize,
-        Path,
-        SVG,
-        Text,
-        Title,
-        cm,
-        math,
-        mo,
-        np,
-        pd,
-        plt,
-        random,
-        requests,
-    )
+
+    return Circle, Line, SVG, Text, Title, mo, np, pd, requests
 
 
 @app.cell
@@ -49,7 +35,8 @@ def _(np, pd, requests):
     dfkl = pd.read_csv('Processed_KL.csv')
     def sqrt_log_x_plus_1(x):
         return np.sqrt(np.log(x + 1))
-    return dfkl, filekl, responsekl, sqrt_log_x_plus_1, urlkl
+    dfkl['displaydatekl'] = pd.to_datetime(dfkl['date']).dt.strftime('%d-%m-%Y')
+    return dfkl, sqrt_log_x_plus_1
 
 
 @app.cell
@@ -62,10 +49,6 @@ def _(dfkl):
 
     min_time_afterkl = dfkl['time_after_log'].min()
     max_time_afterkl = dfkl['time_after_log'].max()
-
-    print(f"Min size: {min_sizekl}, Max size: {max_sizekl}")
-    print(f"Min time_before_log: {min_time_beforekl}, Max time_before_log: {max_time_beforekl}")
-    print(f"Min time_after_log: {min_time_afterkl}, Max time_after_log: {max_time_afterkl}")
     return (
         max_sizekl,
         max_time_afterkl,
@@ -99,7 +82,7 @@ def _(
 
     def scaleSize(s):
         return int(rescale(s, min_sizekl, max_sizekl, 3, 35))
-    return rescale, scaleAfter, scaleBefore, scaleSize, svg_height, svg_width
+    return scaleAfter, scaleBefore, scaleSize, svg_height, svg_width
 
 
 @app.cell
@@ -120,7 +103,7 @@ def _(mo):
     station_dropdown = mo.ui.dropdown(
         options=list(penskl.keys()),
         value="1",
-        label="Select a pen"
+        label="Select a station"
     )
     return penskl, station_dropdown
 
@@ -135,7 +118,7 @@ def _(mo, penskl, station_dropdown):
         value=pig_list[0],
         label="Select a pig"
     )
-    return pig_dropdown, pig_list
+    return (pig_dropdown,)
 
 
 @app.cell
@@ -157,25 +140,7 @@ def _(dfkl, mo, pd):
         show_value=True,
         label="Select range (days from start)",
     )
-    return max_date, min_date, range_sliderkl, total_days
-
-
-@app.cell
-def _(station_dropdown):
-    station_dropdown
-    return
-
-
-@app.cell
-def _(pig_dropdown):
-    pig_dropdown
-    return
-
-
-@app.cell
-def _(range_sliderkl):
-    range_sliderkl
-    return
+    return min_date, range_sliderkl
 
 
 @app.cell
@@ -197,25 +162,7 @@ def _(dfkl, min_date, pd, pig_dropdown, range_sliderkl, station_dropdown):
     print(number_of_visitskl)
     print(mean_intakekl)
     print(weigth_gainkl)
-    return (
-        dfkl_pig,
-        dfkl_station,
-        end_date,
-        end_day,
-        mean_intakekl,
-        number_of_visitskl,
-        selected_pig_name,
-        selected_station,
-        start_date,
-        start_day,
-        weigth_gainkl,
-    )
-
-
-@app.cell
-def _(dfkl_pig):
-    dfkl_pig
-    return
+    return dfkl_pig, mean_intakekl, number_of_visitskl, weigth_gainkl
 
 
 @app.cell
@@ -243,7 +190,7 @@ def _(dfkl_pig, scaleAfter, scaleBefore, scaleSize):
             'x': scaleBefore(row['time_before_log']),
             'y': scaleAfter(row['time_after_log']),
             'r': scaleSize(row['intake']),
-            'date' : row['date'],
+            'displaydatekl' : row['displaydatekl'],
             'color' : row['hour'],
             'intake' : row['intake'],
             'duration' : row['duration']
@@ -260,26 +207,21 @@ def _(datapointskl):
 
     min_x, max_x = min(x_vals), max(x_vals)
     min_y, max_y = min(y_vals), max(y_vals)
-
-    print(f"Min x: {min_x}, Max x: {max_x}")
-    print(f"Min y: {min_y}, Max y: {max_y}")
-    return max_x, max_y, min_x, min_y, x_vals, y_vals
+    return
 
 
-@app.cell
-def _():
-    def color_scale(hour):
-        if 22 <= hour <= 23 or 0 <= hour <= 5:
-            return "#1f77b4"  # night (blue)
-        elif 6 <= hour <= 13:
-            return "#2ca02c"  # morning (green)
-        elif 14 <= hour <= 21:
-            return "#ff7f0e"  # afternoon/evening (orange)
-    return (color_scale,)
+@app.function
+def color_scale(hour):
+    if 22 <= hour <= 23 or 0 <= hour <= 5:
+        return "#1f77b4"  # night (blue)
+    elif 6 <= hour <= 13:
+        return "#2ca02c"  # morning (green)
+    elif 14 <= hour <= 21:
+        return "#ff7f0e"
 
 
 @app.cell
-def _(Circle, Title, color_scale, datapointskl):
+def _(Circle, Title, datapointskl):
     circleskl = []
 
     for datapointkl in datapointskl:
@@ -294,14 +236,14 @@ def _(Circle, Title, color_scale, datapointskl):
             class_="plotkasp",
             elements=[
                 Title(elements=[
-                    f"Date: {datapointkl['date']}\n",
+                    f"Date: {datapointkl['displaydatekl']}\n",
                     f"Intake: {datapointkl['intake']} kg \n",
                     f"Duration: {datapointkl['duration']} seconds"
                 ])
             ]
         )
         circleskl.append(circlekl)
-    return circlekl, circleskl, datapointkl
+    return (circleskl,)
 
 
 @app.cell
@@ -379,23 +321,12 @@ def _(
         for pos, label in y_label_positionskl
     ]
     return (
-        domain_text_maxkl,
-        domain_text_minkl,
         hor_linekl,
-        label,
-        label_positionskl,
         label_text_elements,
-        log_val,
-        raw_val,
-        rescaletext,
-        time_labelskl,
         ver_linekl,
         x_guideskl,
-        x_poskl,
         xkl_text,
         y_guideskl,
-        y_label_positionskl,
-        y_poskl,
         y_text_elements,
         ykl_text,
     )
@@ -454,18 +385,6 @@ def _(
     - 🟧 **Orange**: Afternoon & Evening (14:00 – 22:00)  
     - 🟦 **Blue**: Night (22:00 – 06:00)
     """)
-    return
-
-
-@app.cell
-def _():
-    #3de/4de tutorial of visualisatie
-    #3 categorieën: 20-6, 6-13, 13-20
-    return
-
-
-@app.cell
-def _():
     return
 
 
